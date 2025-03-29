@@ -1,0 +1,73 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract RentalManagement {
+    // Cấu trúc lưu trữ thông tin hợp đồng thuê phòng
+    struct RentalContract {
+        string roomCode;      // Mã phòng trọ
+        string tenantName;    // Tên người thuê
+        string landlordName;  // Tên người cho thuê
+        uint256 startDate;    // Ngày bắt đầu hợp đồng
+        uint256 endDate;      // Ngày kết thúc hợp đồng
+        bool isActive;        // Trạng thái hợp đồng
+    }
+
+    // Mảng lưu trữ các hợp đồng thuê
+    RentalContract[] public rentalContracts;
+
+    // Ánh xạ mã phòng với chỉ số hợp đồng
+    mapping(string => uint256) public roomToContractIndex;
+
+    // Sự kiện thông báo khi tạo hợp đồng mới
+    event ContractCreated(string roomCode, string tenantName, string landlordName);
+
+    // Hàm tạo hợp đồng thuê phòng mới
+    function createRentalContract(
+        string memory _roomCode, 
+        string memory _tenantName, 
+        string memory _landlordName,
+        uint256 _startDate,
+        uint256 _endDate
+    ) public {
+        // Kiểm tra mã phòng chưa được sử dụng
+        require(roomToContractIndex[_roomCode] == 0, "Room already has an active contract");
+
+        // Tạo hợp đồng mới
+        RentalContract memory newContract = RentalContract({
+            roomCode: _roomCode,
+            tenantName: _tenantName,
+            landlordName: _landlordName,
+            startDate: _startDate,
+            endDate: _endDate,
+            isActive: true
+        });
+
+        // Thêm hợp đồng vào mảng
+        rentalContracts.push(newContract);
+
+        // Cập nhật ánh xạ mã phòng
+        roomToContractIndex[_roomCode] = rentalContracts.length;
+
+        // Phát sự kiện thông báo
+        emit ContractCreated(_roomCode, _tenantName, _landlordName);
+    }
+
+    // Hàm tìm kiếm hợp đồng theo mã phòng
+    function getContractByRoomCode(string memory _roomCode) 
+        public 
+        view 
+        returns (RentalContract memory) 
+    {
+        uint256 index = roomToContractIndex[_roomCode];
+        require(index > 0, "No contract found for this room");
+        return rentalContracts[index - 1];
+    }
+
+    // Hàm hủy hợp đồng
+    function terminateContract(string memory _roomCode) public {
+        uint256 index = roomToContractIndex[_roomCode];
+        require(index > 0, "No contract found for this room");
+        
+        rentalContracts[index - 1].isActive = false;
+    }
+}
